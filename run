@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+
+BASE_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+
+function test {
+	go test -v -cover ./...
+}
+
+function cover {
+	# generate coverage report and open in browser
+
+	t="/tmp/go-cover.$$.tmp"
+	# can add -covermode set or count
+	go test -coverprofile="$t" -tags="${@}" ./... && go tool cover -html="$t" && unlink "$t"
+	# go test -coverprofile="$t" -v ./... && go tool cover -html="$t" && unlink "$t"
+}
+
+function build {
+	go build -o bin/x ./cmd/...
+	echo "Build complete"
+}
+
+function x {
+	build
+	./bin/x "${@}"
+}
+
+function install {
+	go install ./...
+	mv "$GOPATH"/bin/cmd "$GOPATH"/bin/x
+}
+
+function help {
+	printf "%s <task> [args]\n\nTasks:\n" "${0}"
+	compgen -A function | grep -v "^_" | cat -n
+	printf "\nExtended help:\n  Each task has comments for general usage\n"
+}
+
+TIMEFORMAT=$'\nTask completed in %3lR'
+time "${@:-help}"
